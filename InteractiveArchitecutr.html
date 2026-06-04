@@ -162,7 +162,10 @@ html, body { height: 100%; overflow: hidden; font-family: -apple-system, BlinkMa
   font-size: 8px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em;
   color: var(--muted); margin-bottom: 4px;
 }
-.client-center { display: flex; flex-direction: column; align-items: center; }
+.client-center {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 14px;
+}
 
 .node { position: relative; cursor: pointer; transition: transform .15s, box-shadow .15s; }
 .node:hover, .node.focused { transform: translateY(-2px); z-index: 10; }
@@ -752,12 +755,13 @@ function box(id) {
   };
 }
 
-function pathSeg(d, color, dashed, withMarker, thin) {
+function pathSeg(d, color, dashed, withMarkerEnd, thin, withMarkerStart) {
   const mk = { '#1d9e75':'m-teal', '#3b6d11':'m-edge', '#854f0b':'m-amber', '#534ab7':'m-purple', '#888780':'m-gray', '#185fa5':'m-blue' }[color] || 'm-gray';
   const dash = dashed ? 'stroke-dasharray="5 7"' : '';
-  const marker = withMarker ? `marker-end="url(#${mk})"` : '';
+  const markerEnd = withMarkerEnd ? `marker-end="url(#${mk})"` : '';
+  const markerStart = withMarkerStart ? `marker-start="url(#${mk})"` : '';
   const w = thin ? 1.75 : 2.5;
-  return `<path d="${d}" fill="none" stroke="${color}" stroke-width="${w}" stroke-linejoin="round" stroke-linecap="round" ${dash} ${marker} opacity=".92"/>`;
+  return `<path d="${d}" fill="none" stroke="${color}" stroke-width="${w}" stroke-linejoin="round" stroke-linecap="round" ${dash} ${markerEnd} ${markerStart} opacity=".92"/>`;
 }
 
 const AMBER = '#854f0b';
@@ -789,15 +793,15 @@ function connectMobileToEdge() {
   return pathSeg(d, '#3b6d11', true, true, false);
 }
 
-/** Web dashboard → API Gateway — left of edge box */
+/** Web dashboard → API Gateway — exits left side of box (never the right) */
 function connectWebdashToApigw() {
   const w = box('webdash'), api = box('apigw');
   if (!w || !api) return '';
   const lanes = clientLaneBounds();
   const orch = document.getElementById('orchestration-flow');
   let lx = orch ? boxEl(orch).left - 44 : w.left - 32;
-  lx = Math.min(lx, lanes.left);
-  const d = `M ${w.right + 2} ${w.cy} L ${lx} ${w.cy} L ${lx} ${api.top - 16} L ${api.left - 4} ${api.top - 4}`;
+  lx = Math.min(lx, lanes.left, w.left - 20);
+  const d = `M ${w.left - 2} ${w.cy} L ${lx} ${w.cy} L ${lx} ${api.top - 16} L ${api.left - 4} ${api.top - 4}`;
   return pathSeg(d, '#888780', false, true, true);
 }
 
@@ -817,15 +821,16 @@ function connectMobileToApigwViaGap() {
   return pathSeg(d, '#1d9e75', false, true, false);
 }
 
-/** Zoho → right rail (outside edge box) → Phase 3 */
+/** Top Zoho (client) → right rail → Phase 3 Zoho (arrow on bottom Zoho box) */
 function connectZohoClientToExternal() {
   const zc = box('zoho-client'), ze = box('zoho-ext');
   if (!zc || !ze) return '';
   const lanes = clientLaneBounds();
   const rx = Math.max(lanes.right, zc.right, ze.right) + 8;
-  const yOut = zc.cy - 8;
-  const d = `M ${ze.cx} ${ze.top - 8} L ${rx} ${ze.top - 8} L ${rx} ${yOut} L ${zc.right + 4} ${yOut}`;
-  return pathSeg(d, AMBER, false, true, true);
+  const y = zc.cy - 8;
+  const yAbove = ze.top - 18;
+  const d = `M ${ze.cx} ${ze.top - 8} L ${ze.cx} ${yAbove} L ${rx} ${yAbove} L ${rx} ${y} L ${zc.right + 4} ${y}`;
+  return pathSeg(d, AMBER, false, true, true, false);
 }
 
 /** Export → exit VPC → Phase 3 external integrations */
